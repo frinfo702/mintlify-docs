@@ -1,25 +1,34 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "linden",
+  "theme": "mint",
   "name": "Uyu Mint",
   "colors": {
-    "primary": "#16A34A",
+    "primary": "#FF4A00",
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/410.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Development",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Introduction",
             "pages": ["index", "quickstart", "development"]
           },
           {
-            "group": "Customization",
-            "pages": ["essentials/settings", "essentials/navigation"]
+            "group": "Backend Engineering",
+            "pages": [
+              "backend/scala3-contextual-abstractions",
+              "essentials/navigation"
+            ]
+          },
+          {
+            "group": "DevOps & Tooling",
+            "pages": [
+              "devtools/go-dev-container-setup"
+            ]
           },
           {
             "group": "Writing content",
@@ -41,11 +50,11 @@
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Research",
         "groups": [
           {
-            "group": "API documentation",
-            "pages": ["api-reference/introduction"]
+            "group": "Diffusion",
+            "pages": ["research/diffusion/what_is_DDPM"]
           },
           {
             "group": "Endpoint examples",
@@ -106,8 +115,8 @@
   "footer": {
     "socials": {
       "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/frinfo702",
+      "linkedin": "https://www.linkedin.com/in/frinfo702/"
     }
   }
 }

@@ -1,0 +1,70 @@
+---
+title: 'なぜImplicitからContextual Abstractionsへ移行したのか'
+description: 'Scala 3で導入されたgiven/usingが、従来のimplicitパラメータや変換と比べてどのように改善されたのかを解説します。'
+---
+
+Scala 2の`implicit`は、非常に強力であると同時に、コードの可読性を著しく下げる「魔法（magic）」として知られていました。Scala 3では、この問題を解決するために`given`と`using`（総称してContextual Abstractions）が導入されました。
+
+### 1. `implicit`が抱えていた問題点
+
+`implicit`には主に2つの問題がありました。
+
+1.  **多機能すぎる (Overloaded):**
+    * Implicit パラメータ
+    * Implicit 変換
+    * 拡張メソッド
+    これらすべてが単一の`implicit`キーワードで定義されていたため、コードの意図が読み取りにくくなっていました。
+
+2.  **可読性の低下 (Poor Readability):**
+    `implicit`な値がどこから提供されているのか、IDEの助けなしに特定するのは困難でした。
+
+<Info>
+特にImplicit変換は、予期せぬ型変換を引き起こす可能性があり、バグの温床となりがちでした。
+</Info>
+
+### 2. `given` と `using` による解決
+
+Scala 3では、意図を明確にするためにキーワードが分割されました。
+
+#### `given`: コンテキスト値の定義
+
+`given`は「このスコープで提供される標準的な（canonical）値」を定義します。
+
+```scala
+// 実行コンテキスト (EC) を定義する
+given ec: ExecutionContext = ExecutionContext.global
+```
+
+`using`: コンテキスト値の要求
+usingは、メソッドがgivenで定義された値を要求することを示します。
+
+
+```scala
+// using節でExecutionContextを要求する
+def fetchUser(id: Int)(using ec: ExecutionContext): Future[User] = {
+  // ...
+}
+```
+
+```scala
+// 呼び出し側: ecは自動的に渡される
+fetchUser(123) 
+```
+<Warning> 移行のポイント Scala 2のimplicit defによる型クラスのインスタンス定義は、Scala 3ではgivenインスタンスとして定義します。implicit valも同様にgivenとして定義されます。 </Warning>
+
+
+3. 拡張メソッド
+implicit classを使った拡張メソッドも、より明示的なextensionキーワードに置き換わりました。
+
+```scala
+// Scala 2: implicit class
+implicit class RichInt(val self: Int) {
+  def squared: Int = self * self
+}
+
+// Scala 3: extension
+extension (self: Int) {
+  def squared: Int = self * self
+}
+````
+この変更により、コードの意図が「型変換」ではなく「メソッドの拡張」であることが明確になりました。

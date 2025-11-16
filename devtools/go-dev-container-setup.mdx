@@ -1,0 +1,62 @@
+---
+title: "GoとDev Containerでクリーンな開発環境を構築する"
+description: "VS CodeのDev Containers機能を利用して、Go言語用の隔離されたクリーンな開発環境を構築する手順を解説します。"
+---
+
+ローカルマシンに Go のバージョンを複数インストールしたり、`GOPATH`を汚したりするのは避けたいものです。VS Code の Dev Containers（開発コンテナ）機能を使えば、プロジェクトごとに隔離された Docker 環境を簡単に構築できます。
+
+### 必要なもの
+
+- Visual Studio Code
+- Docker Desktop
+- [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) VS Code 拡張機能
+
+### セットアップ手順
+
+<Steps>
+    <Step title="`.devcontainer` フォルダの作成">
+        プロジェクトのルートに `.devcontainer` という名前のフォルダを作成します。
+    
+        ```bash
+        mkdir .devcontainer
+        ```
+    </Step>
+    <Step title="devcontainer.json の作成">
+      VS Codeがコンテナをどうビルド・実行するかを定義します。
+      ```json
+      {
+        "name": "Go Dev Container",
+        "image": "[mcr.microsoft.com/devcontainers/go:1.21](https://mcr.microsoft.com/devcontainers/go:1.21)", // Goのバージョンを固定
+        
+        // コンテナ起動後に実行するコマンド
+        "postCreateCommand": "go mod tidy",
+      }
+      ```
+    </Step>
+    <Step title="コンテナのビルド">
+        VS Code でコマンドパレット (Cmd+Shift+P) を開き、Dev Containers: Reopen in Container または Dev Containers: Rebuild and Reopen in Container を選択します。
+
+        <Info>
+          {" "}
+          初回はDockerイメージのプルに時間がかかりますが、2回目以降は高速に起動します。{" "}
+        </Info>
+    </Step>
+
+
+Step 4: 動作確認
+VS Code のターミナルがコンテナ内のシェルに接続されます。 go version を実行し、devcontainer.json で指定したバージョン（この例では 1.21）が表示されることを確認してください。
+
+</Steps>
+
+(オプション) Docker Compose の使用
+複数のサービス（例：Go サーバー + PostgreSQL データベース）を同時に起動したい場合は、docker-compose.yml を使うこともできます。
+
+```json
+{
+  "name": "Go & Postgres",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app", // メインの開発コンテナとなるサービス名
+  "workspaceFolder": "/workspace"
+  // ...
+}
+```
