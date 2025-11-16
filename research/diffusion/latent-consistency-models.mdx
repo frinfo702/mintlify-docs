@@ -1,0 +1,82 @@
+---
+title: "Latent Consistency Models"
+description: "Faster diffusion sampling using training-free distillation."
+icon: "atom"
+---
+
+Latent Consistency Models (LCMs) accelerate diffusion inference by distilling the score network into a model that can jump directly to high-quality samples in a handful of steps. They preserve visual fidelity while cutting latency dramatically versus standard DDPM samplers.
+
+## Motivation
+
+<Info>
+Classical diffusion requires 20–50 denoising steps for high-resolution images. LCMs compress this to 2–8 steps by predicting consistent updates in latent space rather than pixel space.
+</Info>
+
+- Maintain compatibility with existing Stable Diffusion checkpoints.
+- Avoid retraining from scratch; distillation runs offline and publishes a plug-in LoRA.
+- Improve interactive tools (storyboards, UI mockups, prototypes) where sub-second renders matter.
+
+## Training recipe
+
+<Steps>
+  <Step title="Freeze the teacher">
+    Use a pre-trained text-to-image checkpoint (e.g., SDXL). Generate trajectories with your preferred sampler (Euler, DPM++). These traces become supervision data.
+  </Step>
+  <Step title="Distill to LCM">
+    Train a student network to match the teacher's noise-prediction at multiple timesteps while enforcing consistency loss that penalizes divergent latents.
+  </Step>
+  <Step title="Package as LoRA">
+    Export the student weights as a LoRA or ControlNet module so downstream apps can opt in without touching base weights.
+  </Step>
+</Steps>
+
+## Inference integration
+
+```python
+from diffusers import StableDiffusionXLPipeline, LCMScheduler
+
+pipe = StableDiffusionXLPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16,
+    variant="fp16"
+).to("cuda")
+
+pipe.load_lora_weights("mine/lcm-lora.safetensors")
+pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+
+image = pipe(
+    "Isometric dashboard for observability metrics",
+    num_inference_steps=6,
+    guidance_scale=1.2
+).images[0]
+```
+
+<Tip>
+LCMs shine below 8 steps. For higher guidance scales or photorealistic scenes, fall back to classical samplers or hybrid strategies where the last few steps use the original scheduler.
+</Tip>
+
+## Evaluation metrics
+
+| Metric | Why it matters |
+|--------|----------------|
+| FID / CLIP score | Measures fidelity to the teacher distribution |
+| Latency | Average wall-clock time per image on target hardware |
+| Prompt adherence | Human eval or automated similarity scoring |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Images look oversharpened">
+    Reduce the consistency loss weight or fine-tune the LoRA with a lower rank (e.g., 16 → 8).
+  </Accordion>
+  <Accordion title="Style collapses to the training set">
+    Mix prompts from multiple domains during distillation and add classifier-free guidance noise.
+  </Accordion>
+  <Accordion title="Artifacts at high resolutions">
+    Run a two-stage pipeline: 4–6 LCM steps at 512px, then pass the result through a traditional refiner at 1024px.
+  </Accordion>
+</AccordionGroup>
+
+<Check>
+LCMs are a pragmatic upgrade path when you need diffusion-class fidelity with near real-time latency.
+</Check>

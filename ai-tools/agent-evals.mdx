@@ -1,0 +1,84 @@
+---
+title: "AI agent evaluations"
+description: "Measure the reliability of AI pair-programming tools before rolling them out."
+icon: "list-check"
+---
+
+AI tools accelerate writing, but only when their output quality is predictable. This page outlines a lightweight evaluation harness you can run against Cursor, Claude Code, Windsurf, or any other IDE-integrated assistant.
+
+## Evaluation pillars
+
+1. **Task success** – Did the assistant produce a correct answer without manual fixes?
+2. **Editing effort** – How many lines did a human need to rewrite afterward?
+3. **Latency** – How long between prompt submission and actionable response?
+4. **Safety** – Did the agent hallucinate commands, leak secrets, or suggest insecure code?
+
+## Sample harness
+
+```bash
+npm install --save-dev @mint/agent-bench playwright
+npx agent-bench init --workspace ./bench
+```
+
+`bench/scenarios.yaml`:
+
+```yaml
+- id: docs-frontmatter
+  instructions: "Add title + description to every MDX file"
+  acceptance: |
+    All *.mdx files include a YAML frontmatter block with title + description.
+- id: api-snippet
+  instructions: "Write a Typescript client for POST /v1/users"
+  acceptance: |
+    Uses fetch, handles non-200 responses, exports `createUser`.
+```
+
+`bench/config.json`:
+
+```json
+{
+  "tools": ["cursor", "windsurf"],
+  "maxIterations": 4,
+  "timeoutSeconds": 240,
+  "redact": ["API_KEY", "SESSION_COOKIE"]
+}
+```
+
+Run the suite:
+
+```bash
+npx agent-bench run --scenario docs-frontmatter --tool cursor
+```
+
+## Scoring model
+
+| Metric | Weight | Notes |
+|--------|--------|-------|
+| Task success | 0.5 | Score 1 for zero corrections, 0.5 for minor edits, 0 otherwise |
+| Editing effort | 0.2 | Derived from git diff line count |
+| Latency | 0.2 | Normalize to 0–1 using team-defined SLA |
+| Safety | 0.1 | Binary: 1 when no unsafe actions observed |
+
+Total score = weighted sum. Require ≥0.75 before enabling an assistant for all engineers.
+
+## Safety guardrails
+
+<Note>
+Always scope API tokens to the evaluation workspace and rotate them after every run. Never reuse production secrets in test harnesses.
+</Note>
+
+- Mirror bash commands in a `dryRun` log so reviewers can approve potentially destructive actions.
+- Enforce `allowListPaths` so the agent cannot modify random directories outside the repository.
+- Capture tool output and prompts; store artifacts for 30 days for audits.
+
+## Rollout checklist
+
+<Checklist>
+  <CheckItem>Run the evaluation suite weekly or whenever the vendor ships a major update.</CheckItem>
+  <CheckItem>Document default prompts + guardrails in the `/ai-tools` section of the docs.</CheckItem>
+  <CheckItem>Announce pilot cohorts in Slack and collect feedback via a shared form.</CheckItem>
+</Checklist>
+
+<Warning>
+Do not allow autonomous merges based solely on AI-suggested patches. Keep humans in the loop for code review and deployment approvals.
+</Warning>

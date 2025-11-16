@@ -1,0 +1,106 @@
+---
+title: "Remote cache bootstrap"
+description: "Share incremental build artifacts between CI and local environments."
+icon: "cloud-arrow-up"
+---
+
+<Info>
+Remote caching is most effective when every contributor uses the same compiler flags, dependency versions, and folder layout. Start with a reproducible container image (see [`/devtools/go-dev-container-setup`](/devtools/go-dev-container-setup)) before layering caching on top.
+</Info>
+
+## Goals
+
+- Cut cold CI build time by 40-60% on medium repositories (1000–5000 files).
+- Allow laptops to reuse artifacts produced by the latest green pipeline run.
+- Keep caches trustworthy by automatically invalidating stale entries.
+
+## Architecture overview
+
+<Steps>
+  <Step title="Local build publishes artifacts">
+    Developers run `mint build`, Bazel, or another task runner. The build wrapper hashes inputs and emits the artifact bundle (typically a `.tar.zst`).
+  </Step>
+  <Step title="CI promotes verified bundles">
+    Successful pipelines push the bundle to a versioned bucket path such as `s3://mint-cache/main/{commit}` along with a manifest that lists target hashes.
+  </Step>
+  <Step title="Consumers hydrate caches">
+    On startup, the build wrapper downloads the newest compatible manifest, verifies checksums, and restores matching artifacts into the local cache directory.
+  </Step>
+</Steps>
+
+## Reference implementation
+
+```bash
+# Install the wrapper used in both CI and local dev
+npm install --save-dev @mint/dev-cache
+
+# Configure the backend (AWS example)
+export CACHE_BUCKET=mint-cache-prod
+export CACHE_REGION=us-east-1
+```
+
+Create `.mint/cache.config.json`:
+
+```json cache.config.json
+{
+  "bucket": "mint-cache-prod",
+  "region": "us-east-1",
+  "retentionDays": 14,
+  "maxBundleSizeMb": 900
+}
+```
+
+### CI workflow snippet
+
+```yaml github-actions
+name: build
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx mint-cache restore --commit ${{ github.sha }}
+      - run: npm run build
+      - run: npx mint-cache publish --commit ${{ github.sha }} --promote
+```
+
+<Tip>
+Use branch filters to keep experimental branches from polluting the cache. Only promote artifacts from branches where integration tests pass consistently.
+</Tip>
+
+## Observability
+
+<Columns cols={2}>
+  <Card title="Key metrics" icon="chart-line">
+    Track cache hit rate, bundle size, upload/download duration, and signature verification failures.
+  </Card>
+  <Card title="Alerting" icon="bell">
+    Page the on-call team when hit rate drops below 70% for two consecutive hours or when verification errors exceed 1% of restores.
+  </Card>
+</Columns>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cache miss storm after a deploy">
+    Verify that the manifest schema did not change. If it did, increment the cache version (for example `v2/`) so old clients do not attempt to read incompatible bundles.
+  </Accordion>
+  <Accordion title="Uploads exceed size quota">
+    Increase `maxBundleSizeMb` cautiously. Prefer pruning large debug artifacts or splitting bundles per target.
+  </Accordion>
+  <Accordion title="Local builds ignore cache">
+    Ensure the wrapper runs before the build command. In npm scripts, prefix the command: `"build": "mint-cache restore && next build"`.
+  </Accordion>
+</AccordionGroup>
+
+<Check>
+You now have a reusable cache that accelerates both local builds and CI without sacrificing determinism.
+</Check>

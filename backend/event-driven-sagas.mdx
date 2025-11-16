@@ -1,0 +1,94 @@
+---
+title: "Event-driven sagas"
+description: "Coordinate distributed state changes without two-phase commit."
+icon: "arrows-rotate"
+---
+
+Use sagas when a business transaction spans multiple microservices and you cannot rely on a single database transaction. Instead of locking records, each service publishes events and listens for compensating actions.
+
+## When to use
+
+- Booking workflows (inventory, payment, notifications)
+- Subscription lifecycle changes involving billing + entitlements
+- Long-running data migrations that must remain customer-visible
+
+Avoid sagas when: operations finish within a single database and do not require cross-service orchestration.
+
+## Saga topology
+
+<Columns cols={2}>
+  <Card title="Choreography" icon="shuffle">
+    Each service emits domain events (e.g., `PaymentCaptured`) and reacts to others. Minimal coordination layer but harder to trace.
+  </Card>
+  <Card title="Orchestration" icon="diagramproject">
+    A central controller persists saga state and issues commands (`ReserveInventory`). Easier to audit, but introduces one more critical service.
+  </Card>
+</Columns>
+
+## Example timeline
+
+<Steps>
+  <Step title="Order service">
+    Persists the order and emits `OrderCreated` with correlation ID `order-123`.
+  </Step>
+  <Step title="Inventory service">
+    Reserves items, then emits `InventoryReserved` or `InventoryFailed`.
+  </Step>
+  <Step title="Payment service">
+    Charges the card only after inventory succeeded. Emits `PaymentCaptured`.
+  </Step>
+  <Step title="Orchestrator">
+    Marks saga `Completed` when all positive events arrive. Otherwise triggers compensations.
+  </Step>
+</Steps>
+
+## Implementation sketch
+
+```kotlin
+sealed interface SagaEvent { val correlationId: String }
+
+data class OrderCreated(override val correlationId: String): SagaEvent
+
+data class InventoryReserved(override val correlationId: String): SagaEvent
+
+data class PaymentCaptured(override val correlationId: String): SagaEvent
+
+data class PaymentFailed(override val correlationId: String, val reason: String): SagaEvent
+```
+
+```kotlin
+class SagaOrchestrator(
+  private val bus: EventBus,
+  private val repo: SagaRepository
+) {
+  suspend fun handle(event: SagaEvent) {
+    val state = repo.upsert(event)
+    when {
+      state.isComplete() -> bus.publish(SagaCompleted(event.correlationId))
+      state.needsCompensation() -> bus.publish(Compensate(event.correlationId))
+    }
+  }
+}
+```
+
+<Tip>
+Store saga state in an append-only table keyed by correlation ID. This keeps historical audits without complex joins.
+</Tip>
+
+## Failure recovery
+
+<AccordionGroup>
+  <Accordion title="Idempotency">
+    Include a `messageId` header so consumers can discard duplicates. Persist processed IDs for at least 24 hours.
+  </Accordion>
+  <Accordion title="Compensations">
+    Predefine inverse actions (`UnreserveInventory`, `RefundPayment`). Execute them in reverse order of the happy path.
+  </Accordion>
+  <Accordion title="Timeouts">
+    Run a watchdog job that marks sagas as `TimedOut` when no progress occurs for a configurable window. Trigger compensations automatically.
+  </Accordion>
+</AccordionGroup>
+
+<Check>
+With sagas, each microservice stays autonomous while the overall business process remains consistent and observable.
+</Check>

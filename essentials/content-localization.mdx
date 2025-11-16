@@ -1,0 +1,68 @@
+---
+title: "Content localization"
+description: "Plan, translate, and QA localized Mintlify docs with confidence."
+icon: "language"
+---
+
+Localization succeeds when source content is disciplined. Freeze English copy before each translation batch, keep terminology consistent, and automate regression checks whenever source files change.
+
+## Workflow at a glance
+
+<Steps>
+  <Step title="Prepare source">
+    Lint MDX, resolve TODOs, and export strings via `mint export --format xliff`. Freeze the commit hash so vendors work from an immutable reference.
+  </Step>
+  <Step title="Translate">
+    Send XLIFF files plus the terminology glossary. Require translators to keep component tags (for example `<Tip>` or fenced code blocks) untouched.
+  </Step>
+  <Step title="Validate">
+    Re-import translations with `mint import --locale es-ES` and run automated link + screenshot tests.
+  </Step>
+</Steps>
+
+## File organization
+
+```
+locales/
+  es-ES/
+    index.mdx
+    quickstart.mdx
+  ja-JP/
+    index.mdx
+```
+
+- Match the English file tree exactly. Missing files break locale-specific navigation.
+- Store canonical terminology in `locales/glossary.csv` with columns `term,en-US,es-ES,ja-JP`.
+
+## Automation checklist
+
+<Columns cols={2}>
+  <Card title="Pre-commit" icon="shield-halved">
+    Run `mint broken-links --locale *` to ensure translated anchors point to valid targets.
+  </Card>
+  <Card title="CI" icon="robot">
+    Schedule nightly screenshot diffs with Playwright to catch layout regressions introduced by longer strings.
+  </Card>
+</Columns>
+
+## QA rubric
+
+<AccordionGroup>
+  <Accordion title="Terminology drift">
+    Confirm glossary adherence for product names and UI labels; reject translations that invent synonyms.
+  </Accordion>
+  <Accordion title="Component safety">
+    `<Tip>`, `<Warning>`, and fenced code blocks must remain intact. When in doubt, re-run `mint lint` to detect malformed components.
+  </Accordion>
+  <Accordion title="Context accuracy">
+    Verify references to time zones, release dates, and screenshots remain relevant for the locale.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Encourage translators to leave reviewer comments inline (using HTML comments) instead of editing structural metadata. Example: `<!-- Need confirmation on "Workspace" vs "Project" -->`.
+</Tip>
+
+<Check>
+Once localized docs pass QA, tag the release (for example `docs-i18n-2025.03`) and notify support so in-product links can start pointing to the localized routes.
+</Check>
