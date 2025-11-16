@@ -1,62 +1,92 @@
 ---
-title: "GoとDev Containerでクリーンな開発環境を構築する"
-description: "VS CodeのDev Containers機能を利用して、Go言語用の隔離されたクリーンな開発環境を構築する手順を解説します。"
+title: "Go + Dev Containers"
+description: "VS Code Dev Containers で Go プロジェクト用の再現性のある開発環境を構築する"
 ---
 
-ローカルマシンに Go のバージョンを複数インストールしたり、`GOPATH`を汚したりするのは避けたいものです。VS Code の Dev Containers（開発コンテナ）機能を使えば、プロジェクトごとに隔離された Docker 環境を簡単に構築できます。
+VS Code Dev Containers を使うと、Go のバージョンやツールチェーンをプロジェクト専用の Docker イメージに閉じ込め、チーム全員が同じ環境からスタートできます。
 
-### 必要なもの
+## 前提条件
 
-- Visual Studio Code
-- Docker Desktop
-- [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) VS Code 拡張機能
+- Docker Desktop (または互換エンジン)
+- VS Code + <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> 拡張
+- Go モジュール化されたリポジトリ（`go.mod`）
 
-### セットアップ手順
+## 最小構成
+
+プロジェクトルートで以下を作成します。
+
+```bash
+mkdir -p .devcontainer
+cat <<'JSON' > .devcontainer/devcontainer.json
+{
+  "name": "Uyu Go",
+  "image": "mcr.microsoft.com/devcontainers/go:1.21",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "go mod tidy",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "eamodio.gitlens"
+      ]
+    }
+  }
+}
+JSON
+```
+
+<Info>VS Code が `postCreateCommand` を実行するため、Go モジュールの依存関係が初回起動時に同期されます。</Info>
+
+## 起動手順
 
 <Steps>
-    <Step title="`.devcontainer` フォルダの作成">
-        プロジェクトのルートに `.devcontainer` という名前のフォルダを作成します。
-    
-        ```bash
-        mkdir .devcontainer
-        ```
-    </Step>
-    <Step title="devcontainer.json の作成">
-      VS Codeがコンテナをどうビルド・実行するかを定義します。
-      ```json
-      {
-        "name": "Go Dev Container",
-        "image": "[mcr.microsoft.com/devcontainers/go:1.21](https://mcr.microsoft.com/devcontainers/go:1.21)", // Goのバージョンを固定
-        
-        // コンテナ起動後に実行するコマンド
-        "postCreateCommand": "go mod tidy",
-      }
-      ```
-    </Step>
-    <Step title="コンテナのビルド">
-        VS Code でコマンドパレット (Cmd+Shift+P) を開き、Dev Containers: Reopen in Container または Dev Containers: Rebuild and Reopen in Container を選択します。
-
-        <Info>
-          {" "}
-          初回はDockerイメージのプルに時間がかかりますが、2回目以降は高速に起動します。{" "}
-        </Info>
-    </Step>
-
-
-Step 4: 動作確認
-VS Code のターミナルがコンテナ内のシェルに接続されます。 go version を実行し、devcontainer.json で指定したバージョン（この例では 1.21）が表示されることを確認してください。
-
+  <Step title="コンテナに切り替える">
+    VS Code のコマンドパレットで **Dev Containers: Reopen in Container** を選択。初回はベースイメージのダウンロードに数分かかります。
+  </Step>
+  <Step title="動作確認">
+    コンテナ内ターミナルで `go version` を実行し、指定したバージョン（例: 1.21）が表示されることを確認します。
+    <Check>VS Code のステータスバーに "Dev Container" バッジが表示されれば、リモート環境が有効です。</Check>
+  </Step>
+  <Step title="ホットリロードを準備する">
+    <Tabs>
+      <Tab title="Air">
+        `cosmtrek/air` を `go install github.com/cosmtrek/air@latest` で追加し、`air.toml` を `.devcontainer` に配置します。
+      </Tab>
+      <Tab title="Taskfile">
+        `go-task/task` を使う場合は `brew install go-task/tap/go-task` を追加し、`Taskfile.yml` に `task dev` を定義します。
+      </Tab>
+    </Tabs>
+  </Step>
 </Steps>
 
-(オプション) Docker Compose の使用
-複数のサービス（例：Go サーバー + PostgreSQL データベース）を同時に起動したい場合は、docker-compose.yml を使うこともできます。
+## Docker Compose を使った複合環境
+
+API とデータベースを同時に立ち上げたい場合は `docker-compose.yml` を組み合わせます。
 
 ```json
 {
-  "name": "Go & Postgres",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "app", // メインの開発コンテナとなるサービス名
-  "workspaceFolder": "/workspace"
-  // ...
+  "name": "Go + Postgres",
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+  "service": "api",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [8080, 5432]
 }
 ```
+
+## よくあるトラブル
+
+<AccordionGroup>
+  <Accordion title="Docker デーモンに接続できない">
+    ホスト側で Docker Desktop が起動していること、また rootless モードの場合は `docker context` を `default` に戻すことを確認してください。
+  </Accordion>
+  <Accordion title="VS Code 拡張が同期されない">
+    `devcontainer.json` の `customizations.vscode.extensions` を確認し、再ビルド (`Dev Containers: Rebuild Container`) を実行します。
+  </Accordion>
+  <Accordion title="go.sum の差分が毎回出る">
+    `postCreateCommand` を `go mod download` に変更し、手動で `go mod tidy` を実行することで自動更新を抑制できます。
+  </Accordion>
+</AccordionGroup>

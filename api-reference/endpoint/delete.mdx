@@ -1,4 +1,38 @@
 ---
 title: 'Delete Plant'
+description: 'Remove a plant from the catalog by numeric identifier.'
 openapi: 'DELETE /plants/{id}'
 ---
+
+Removes a plant permanently. Use cautiously—this operation cannot be undone.
+
+## Path parameter
+
+<ParamField path="id" type="integer" required>
+Numeric identifier returned when the plant was created.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --request DELETE 'https://sandbox.mintlify.com/plants/501' \
+  --header 'Authorization: Bearer $MINTLIFY_TOKEN'
+```
+</RequestExample>
+
+<ResponseExample>
+```http 204 No Content
+
+```
+</ResponseExample>
+
+## Failure modes
+
+<ResponseField name="error" type="integer" required>
+`404` indicates the plant does not exist, `401` indicates invalid credentials. Both return a JSON body with this schema even though the success case is empty.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+Additional diagnostic info.
+</ResponseField>
+
+<Tip>Need soft deletes? Archive the record by writing a `tag` such as `deprecated` instead of calling this endpoint, then hide archived records on the client.</Tip>

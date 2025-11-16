@@ -1,4 +1,55 @@
 ---
 title: 'Create Plant'
+description: 'Add a new plant record to the catalog.'
 openapi: 'POST /plants'
 ---
+
+Adds a plant to the store and returns the persisted object.
+
+## Request body
+
+<ParamField body="id" type="integer" required>
+Client-supplied numeric identifier. Use a monotonically increasing ID when migrating existing catalogs.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+Common name of the plant. Must be unique per workspace.
+</ParamField>
+
+<ParamField body="tag" type="string">
+Free-form label describing the type (for example `succulent`).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --request POST 'https://sandbox.mintlify.com/plants' \
+  --header 'Authorization: Bearer $MINTLIFY_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "id": 501,
+    "name": "Monstera Deliciosa",
+    "tag": "indoor"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 OK
+{
+  "name": "Monstera Deliciosa",
+  "tag": "indoor"
+}
+```
+</ResponseExample>
+
+## Errors
+
+<ResponseField name="error" type="integer" required>
+Matches the HTTP status code (for example `400`).
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+Details about the validation failure.
+</ResponseField>
+
+<Warning>Attempting to reuse an `id` or `name` returns a 400 error. Fetch the existing record first to avoid duplicates.</Warning>

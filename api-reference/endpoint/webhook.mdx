@@ -1,4 +1,49 @@
 ---
-title: 'New Plant'
+title: 'New Plant Webhook'
+description: 'Receive notifications whenever a plant is added to the store.'
 openapi: 'WEBHOOK /plant/webhook'
 ---
+
+Uyu calls this webhook every time a plant is created. Return a 2xx status code within five seconds to acknowledge receipt—otherwise the event is retried with exponential backoff (up to 5 attempts).
+
+## Payload
+
+<ResponseField name="id" type="integer" required>
+Unique identifier assigned to the plant.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+Plant name from the catalog.
+</ResponseField>
+
+<ResponseField name="tag" type="string">
+Informational label such as `succulent` or `indoor`.
+</ResponseField>
+
+<RequestExample>
+```json Event payload
+{
+  "id": 501,
+  "name": "Monstera Deliciosa",
+  "tag": "indoor"
+}
+```
+</RequestExample>
+
+## Responding
+
+<ResponseExample>
+```http 200 OK
+{
+  "received": true
+}
+```
+</ResponseExample>
+
+<Tip>You can include any JSON body in the response. Only the HTTP status code is evaluated by the webhook delivery service.</Tip>
+
+## Security recommendations
+
+- Host the webhook behind HTTPS. Self-signed certificates are rejected.
+- Validate the request origin (for example, by checking IP allowlists) until signature headers are available.
+- Respond quickly. Perform slow work asynchronously to avoid retries.

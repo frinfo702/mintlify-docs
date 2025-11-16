@@ -1,4 +1,52 @@
 ---
 title: 'Get Plants'
+description: 'Retrieve a paginated list of plants that belong to the authenticated workspace.'
 openapi: 'GET /plants'
 ---
+
+Lists every plant available to the caller. Use the `limit` parameter to control payload size.
+
+## Query parameters
+
+<ParamField query="limit" type="integer" default="20">
+Maximum number of results to return. Accepts values between 1 and 100.
+</ParamField>
+
+## Example request
+
+<RequestExample>
+```bash cURL
+curl --request GET 'https://sandbox.mintlify.com/plants?limit=20' \
+  --header 'Authorization: Bearer $MINTLIFY_TOKEN'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 OK
+[
+  {
+    "name": "Aloe Vera",
+    "tag": "succulent"
+  },
+  {
+    "name": "Snake Plant",
+    "tag": "indoor"
+  }
+]
+```
+</ResponseExample>
+
+## Error payload
+
+<ResponseField name="error" type="integer" required>
+Numeric error code. `401` signals invalid auth, `429` signals rate limiting.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+Human-readable explanation.
+</ResponseField>
+
+## Tips
+
+- Cache responses for 60 seconds to stay within default rate limits (60 requests/minute).
+- For reporting jobs, fetch pages on a backend worker instead of from a browser client so you can respect rate limits and retry logic.

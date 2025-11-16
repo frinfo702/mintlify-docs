@@ -1,93 +1,91 @@
----
-title: "Development"
-description: "Preview changes locally to update your docs"
+title: "Local Development"
+description: "Run the Mintlify toolchain with production parity, troubleshoot quickly, and ship with confidence."
 ---
 
 <Info>
-  **Prerequisites**:
-
-  - Node.js version 19 or higher
-  - A docs repository with a `docs.json` file
+  <strong>Prerequisites</strong>
+  <ul>
+    <li>Node.js 18.17+ (LTS) and npm 9+</li>
+    <li>Access to the repository that contains <code>docs.json</code></li>
+    <li>Optional: Docker Desktop if you plan to run Dev Containers</li>
+  </ul>
 </Info>
 
-Follow these steps to install and run Mintlify on your operating system.
+## Install once
+
+```bash
+npm i -g mint
+```
+
+<Tip>Upgrade periodically with <code>mint update</code> to stay aligned with the renderer that powers production deployments.</Tip>
+
+## Run the preview server
 
 <Steps>
-  <Step title="Install the Mintlify CLI">
-    ```bash
-    npm i -g mint
-    ```
-  </Step>
-  <Step title="Preview locally">
-    Navigate to your docs directory where your `docs.json` file is located, and run the following command:
+  <Step title="Launch">
+    In the folder that contains `docs.json`, run:
 
     ```bash
     mint dev
     ```
 
-    A local preview of your documentation will be available at `http://localhost:3000`.
+    The CLI prints a localhost URL (default `http://localhost:3000`) and watches every MDX/JSON edit.
+  </Step>
+
+  <Step title="Customize the port">
+    ```bash
+    mint dev --port 3333
+    ```
+
+    If the specified port is busy, Mintlify automatically falls back to the next available one and logs the change.
+  </Step>
+
+  <Step title="Verify output">
+    - Use the on-screen console to catch missing frontmatter and invalid components.
+    - Run `mint broken-links` before every PR to surface orphaned references.
+    - For API-heavy pages, add the `--schema api-reference/openapi.json` flag to lint endpoint definitions.
   </Step>
 </Steps>
 
-## Custom ports
+## Working faster
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. For example, to run Mintlify on port 3333, use this command:
+<Columns cols={2}>
+  <Card title="Hot reload aware commits" icon="bolt">
+    Stop the server with `Ctrl+C` before switching branches to avoid orphaned watchers.
+  </Card>
+  <Card title="Pair with Dev Containers" icon="box" href="/devtools/go-dev-container-setup">
+    Isolate Go toolchains, CLI versions, and VS Code extensions in one reproducible workspace.
+  </Card>
+</Columns>
 
-```bash
-mint dev --port 3333
-```
+## Recommended editor setup
 
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
+- **VS Code**: install the <a href="https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx">MDX</a> extension plus <a href="https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode">Prettier</a> for formatting.
+- **Cursor/Windsurf**: load the project rules documented under **AI tools** so assistants follow our style guide.
+- **Linting**: enable markdownlint for quick feedback on heading hierarchy and spacing.
 
-```md
-Port 3000 is already in use. Trying 3001 instead.
-```
+## Troubleshooting playbook
 
-## Mintlify versions
-
-Please note that each CLI release is associated with a specific version of Mintlify. If your local preview does not align with the production version, please update the CLI:
-
-```bash
-npm mint update
-```
-
-## Validating links
-
-The CLI can assist with validating links in your documentation. To identify any broken links, use the following command:
-
-```bash
-mint broken-links
-```
-
-## Deployment
-
-If the deployment is successful, you should see the following:
+<AccordionGroup>
+  <Accordion title="Error: Could not load the 'sharp' module on Apple Silicon">
+    1. Uninstall the current CLI: `npm remove -g mint`
+    2. Upgrade Node to the latest LTS.
+    3. Reinstall: `npm i -g mint`
+  </Accordion>
+  <Accordion title="Preview server fails silently">
+    Delete the cache folder with `rm -rf ~/.mintlify`, then rerun `mint dev`.
+  </Accordion>
+  <Accordion title="Fonts or images missing in preview">
+    Restart the server with `mint dev --clear-cache` to rebuild assets.
+  </Accordion>
+</AccordionGroup>
 
 <Frame>
   <img
     src="/images/checks-passed.png"
-    alt="Screenshot of a deployment confirmation message that says All checks have passed."
-    style={{ borderRadius:"0.5rem" }}
+    alt="Screenshot of a successful Mintlify deployment checks panel"
+    style={{ borderRadius: '0.5rem' }}
   />
 </Frame>
 
-## Code formatting
-
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
-    This may be due to an outdated version of node. Try the following:
-
-    1. Remove the currently-installed version of the CLI: `npm remove -g mint`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall the CLI: `npm i -g mint`
-  </Accordion>
-  <Accordion title="Issue: Encountering an unknown error">
-    Solution: Go to the root of your device and delete the `~/.mintlify` folder. Then run `mint dev` again.
-  </Accordion>
-</AccordionGroup>
-
-Curious about what changed in the latest CLI version? Check out the [CLI changelog](https://www.npmjs.com/package/mintlify?activeTab=versions).
+Curious about what's new? The <a href="https://www.npmjs.com/package/mintlify?activeTab=versions">CLI changelog</a> lists every release along with migration notes.

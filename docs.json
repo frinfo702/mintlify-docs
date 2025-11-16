@@ -21,13 +21,15 @@
             "group": "Backend Engineering",
             "pages": [
               "backend/scala3-contextual-abstractions",
+              "backend/event-driven-sagas",
               "essentials/navigation"
             ]
           },
           {
             "group": "DevOps & Tooling",
             "pages": [
-              "devtools/go-dev-container-setup"
+              "devtools/go-dev-container-setup",
+              "devtools/remote-cache-bootstrap"
             ]
           },
           {
@@ -36,7 +38,8 @@
               "essentials/markdown",
               "essentials/code",
               "essentials/images",
-              "essentials/reusable-snippets"
+              "essentials/reusable-snippets",
+              "essentials/content-localization"
             ]
           },
           {
@@ -44,7 +47,8 @@
             "pages": [
               "ai-tools/cursor",
               "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "ai-tools/windsurf",
+              "ai-tools/agent-evals"
             ]
           }
         ]
@@ -52,10 +56,13 @@
       {
         "tab": "Research",
         "groups": [
-          {
-            "group": "Diffusion",
-            "pages": ["research/diffusion/what_is_DDPM"]
-          },
+        {
+          "group": "Diffusion",
+          "pages": [
+            "research/diffusion/what_is_DDPM",
+            "research/diffusion/latent-consistency-models"
+          ]
+        },
           {
             "group": "Endpoint examples",
             "pages": [
@@ -84,8 +91,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/momo.png",
+    "dark": "/logo/momo.png"
   },
   "navbar": {
     "links": [

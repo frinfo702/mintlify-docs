@@ -1,4 +1,22 @@
-One of the core principles of software development is DRY (Don't Repeat
-Yourself). This is a principle that applies to documentation as
-well. If you find yourself repeating the same content in multiple places, you
-should consider creating a custom snippet to keep your content in sync.
+---
+title: "Snippet foundations"
+description: "Why and how we use reusable snippet components in Mintlify"
+---
+
+One of the core principles of software development is DRY (Don't Repeat Yourself). Documentation benefits from the same discipline. Snippets let you package canonical content—like SLA guarantees, pricing tables, or shared warnings—so that every page references a single source of truth.
+
+## When to create a snippet
+
+- You expect to reuse the exact same copy in threeつ以上の場所
+- Content requires regular updates (for example, API version tables)
+- Compliance or legal language must remain word-for-word identical
+
+## Authoring tips
+
+<Checklist>
+  <CheckItem>Store snippet files under `snippets/` so Mintlify treats them as importable components</CheckItem>
+  <CheckItem>Add frontmatter if the snippet will also power metadata or be surfaced elsewhere</CheckItem>
+  <CheckItem>Export variables or components for highly dynamic sections</CheckItem>
+</Checklist>
+
+<Note>Snippets render inline wherever they are imported—avoid wrapping them in top-level headings to prevent duplicate anchors.</Note>

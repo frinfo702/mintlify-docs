@@ -214,12 +214,12 @@ Complete walkthrough from installation to your first API call in under 10 minute
 </Card>
 
 <CardGroup cols={2}>
-<Card title="Authentication" icon="key" href="/auth">
-  Learn how to authenticate requests using API keys or JWT tokens.
+<Card title="API reference" icon="key" href="/api-reference/endpoint/get">
+  Learn how to call real endpoints with live request and response samples.
 </Card>
 
-<Card title="Rate limiting" icon="clock" href="/rate-limits">
-  Understand rate limits and best practices for high-volume usage.
+<Card title="Webhooks" icon="clock" href="/api-reference/endpoint/webhook">
+  Understand webhook delivery semantics and retry behavior.
 </Card>
 </CardGroup>
 
@@ -292,11 +292,11 @@ Complete user object with all associated data.
 Wrap all images in frames:
 
 <Frame>
-<img src="/images/dashboard.png" alt="Main dashboard showing analytics overview" />
+<img src="/images/hero-light.png" alt="Preview of the Mintlify docs homepage" />
 </Frame>
 
-<Frame caption="The analytics dashboard provides real-time insights">
-<img src="/images/analytics.png" alt="Analytics dashboard with charts" />
+<Frame caption="Dark mode preview of the same layout">
+<img src="/images/hero-dark.png" alt="Dark mode preview of the documentation layout" />
 </Frame>
 
 #### Videos

@@ -1,48 +1,33 @@
-# Mintlify Starter Kit
+# Uyu Docs
 
-Use the starter kit to get your docs deployed and ready to customize.
+This repository powers the public-facing documentation for the **Uyu** platform. It is built with [Mintlify](https://mintlify.com), rendered from MDX content, and deployed automatically through the Mintlify dashboard.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Project structure
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+- `docs.json` – site configuration (navigation, branding, tabs, CTA buttons)
+- `index.mdx`, `quickstart.mdx`, etc. – high-level guides published under the **Development** tab
+- `api-reference/` – OpenAPI-powered reference pages
+- `snippets/` – reusable MDX snippets that can be embedded in multiple guides
 
-[**Follow the full quickstart guide**](https://starter.mintlify.com/quickstart)
+## Local development
 
-## Development
+1. Install the CLI if needed: `npm i -g mint`
+2. Start the preview server at the repo root: `mint dev`
+3. Visit `http://localhost:3000` for live reload previews
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+Common helpers:
 
-```
-npm i -g mint
-```
+- `mint broken-links` – scan for invalid internal/external links
+- `mint dev --port 4000` – run the preview server on a custom port
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+## Deploying changes
 
-```
-mint dev
-```
+1. Install the Mintlify GitHub app from the [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+2. Push to the default branch. The GitHub app builds and deploys automatically.
+3. Monitor status checks on the PR to ensure the release succeeded.
 
-View your local preview at `http://localhost:3000`.
+## Support & troubleshooting
 
-## Publishing changes
-
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
-
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-
-- [Mintlify documentation](https://mintlify.com/docs)
-
-$$
-q(\mathbf{x}_t | \mathbf{x}_{t-1}) := \mathcal{N}(\mathbf{x}_t; \sqrt{1-\beta_t} \mathbf{x}_{t-1}, \beta_t \mathbf{I})
-$$
+- Run `mint update` if the local renderer drifts from production.
+- Delete `~/.mintlify` if the CLI cache becomes corrupted.
+- Join the [Mintlify community](https://mintlify.com/community) or email `hi@mintlify.com` for help.

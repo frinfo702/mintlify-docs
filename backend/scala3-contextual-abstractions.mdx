@@ -1,70 +1,105 @@
 ---
-title: 'なぜImplicitからContextual Abstractionsへ移行したのか'
-description: 'Scala 3で導入されたgiven/usingが、従来のimplicitパラメータや変換と比べてどのように改善されたのかを解説します。'
+title: 'Scala 3 Contextual Abstractions'
+description: 'implicit 依存から given / using / extension へ移行する理由と実践ガイド'
 ---
 
-Scala 2の`implicit`は、非常に強力であると同時に、コードの可読性を著しく下げる「魔法（magic）」として知られていました。Scala 3では、この問題を解決するために`given`と`using`（総称してContextual Abstractions）が導入されました。
+Scala 3 の contextual abstractions は、Scala 2 時代の `implicit` に集中していた責務を分解し、挙動を明示化するための仕組みです。ここでは課題の整理から移行手順、具体的なコードパターンまでをまとめます。
 
-### 1. `implicit`が抱えていた問題点
+## なぜ変えるのか
 
-`implicit`には主に2つの問題がありました。
+| 課題 | 具体例 | 影響 |
+| --- | --- | --- |
+| 役割の混在 | `implicit` がパラメータ注入・拡張メソッド・暗黙変換のすべてを表す | 宣言を読んだだけでは意図が分からない |
+| 追跡の難しさ | どの implicit が解決されたか IDE 依存 | レビューでの検証コスト上昇 |
+| 予期せぬ変換 | `implicit def` が意図しない場所で作用 | ランタイムのバグや曖昧解決エラー |
 
-1.  **多機能すぎる (Overloaded):**
-    * Implicit パラメータ
-    * Implicit 変換
-    * 拡張メソッド
-    これらすべてが単一の`implicit`キーワードで定義されていたため、コードの意図が読み取りにくくなっていました。
+<Info>特に暗黙変換は、リファクタ時に突然解決できなくなる・循環参照を生むなどトラブルの温床でした。</Info>
 
-2.  **可読性の低下 (Poor Readability):**
-    `implicit`な値がどこから提供されているのか、IDEの助けなしに特定するのは困難でした。
+## Scala 3 の基本構文
 
-<Info>
-特にImplicit変換は、予期せぬ型変換を引き起こす可能性があり、バグの温床となりがちでした。
-</Info>
-
-### 2. `given` と `using` による解決
-
-Scala 3では、意図を明確にするためにキーワードが分割されました。
-
-#### `given`: コンテキスト値の定義
-
-`given`は「このスコープで提供される標準的な（canonical）値」を定義します。
+### given / using
 
 ```scala
-// 実行コンテキスト (EC) を定義する
-given ec: ExecutionContext = ExecutionContext.global
-```
+import scala.concurrent.{ExecutionContext, Future}
 
-`using`: コンテキスト値の要求
-usingは、メソッドがgivenで定義された値を要求することを示します。
+given ExecutionContext = ExecutionContext.global
 
-
-```scala
-// using節でExecutionContextを要求する
-def fetchUser(id: Int)(using ec: ExecutionContext): Future[User] = {
+def fetchUser(id: Int)(using ExecutionContext): Future[User] =
   // ...
-}
+
+fetchUser(42) // ExecutionContext は自動注入
 ```
 
+<Warning>Scala 2 の `implicit val` / `implicit def` はそのままでは非推奨です。`given` へ名称を変えるだけでなく、スコープを呼び出し側に近い最小単位へ分割しましょう。</Warning>
+
+### Extension
+
 ```scala
-// 呼び出し側: ecは自動的に渡される
-fetchUser(123) 
+extension (value: Int)
+  def squared: Int = value * value
 ```
-<Warning> 移行のポイント Scala 2のimplicit defによる型クラスのインスタンス定義は、Scala 3ではgivenインスタンスとして定義します。implicit valも同様にgivenとして定義されます。 </Warning>
 
+`implicit class` では「型をラップしているのか？」が曖昧でしたが、`extension` はメソッドを追加しているだけであることを明示できます。
 
-3. 拡張メソッド
-implicit classを使った拡張メソッドも、より明示的なextensionキーワードに置き換わりました。
+### コンテキスト境界
 
 ```scala
-// Scala 2: implicit class
-implicit class RichInt(val self: Int) {
-  def squared: Int = self * self
-}
+trait JsonEncoder[A]:
+  def encode(value: A): String
 
-// Scala 3: extension
-extension (self: Int) {
-  def squared: Int = self * self
-}
-````
-この変更により、コードの意図が「型変換」ではなく「メソッドの拡張」であることが明確になりました。
+given JsonEncoder[Int] with
+  def encode(value: Int): String = value.toString
+
+def toJson[A: JsonEncoder](value: A): String =
+  summon[JsonEncoder[A]].encode(value)
+```
+
+`[A: JsonEncoder]` の形で「型クラスインスタンスが必要」という情報を短く表現できます。
+
+## 移行ガイド
+
+<Steps>
+  <Step title="暗黙変換の棚卸し">
+    `implicit def` を Grep し、extension または明示的な関数へ置き換え可能かを判定します。
+  </Step>
+  <Step title="given のスコープを最小化">
+    共有が必要なものだけ `package object` や `given import` で公開し、それ以外はモジュール内に閉じ込めます。
+  </Step>
+  <Step title="型クラスを整理">
+    `implicit` を伴うトレイトには `typeclass` サフィックスを付ける、エンコーダ/デコーダは `given` を同一ファイルへまとめるなど命名規則を決めます。
+  </Step>
+</Steps>
+
+## 実例: HTTP クライアント
+
+```scala
+import scala.concurrent.{ExecutionContext, Future}
+
+given ExecutionContext = ExecutionContext.global
+
+trait HttpClient:
+  def get(path: String): Future[String]
+
+class DefaultHttpClient(using cfg: ServiceConfig, ExecutionContext) extends HttpClient:
+  def get(path: String): Future[String] = ???
+
+given (using cfg: ServiceConfig): HttpClient = DefaultHttpClient()
+
+case class ServiceConfig(baseUrl: String, apiKey: String)
+
+def fetchHealth(using client: HttpClient): Future[String] =
+  client.get("/health")
+```
+
+## チェックリスト
+
+<Checklist>
+  <CheckItem>extension へ移行できる `implicit class` が残っていない</CheckItem>
+  <CheckItem>暗黙の `ExecutionContext` / `Scheduler` をモジュール単位で管理している</CheckItem>
+  <CheckItem>`summon` や `given` で型クラスインスタンスを明示的に取得している</CheckItem>
+</Checklist>
+
+## 追加リソース
+
+- <a href="https://docs.scala-lang.org/scala3/reference/contextual/index.html">Scala 3 Reference: Contextual Abstractions</a>
+- <a href="https://docs.scala-lang.org/scala3/guides/migration/contexts-implied-parameters.html">Migration guide: Implied Parameters</a>
